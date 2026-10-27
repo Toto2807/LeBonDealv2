@@ -62,7 +62,7 @@ export function validatePatch(body) {
     return clean;
 }
 
-const QUERY_KEYS = ['q', 'categorie', 'prixMax', 'disponibles', 'mine', 'page', 'limit'];
+const QUERY_KEYS = ['q', 'categorie', 'prixMax', 'disponibles', 'mine', 'favoris', 'page', 'limit'];
 export const LIMIT_DEFAULT = 50;
 export const LIMIT_MAX = 100;
 
@@ -90,6 +90,7 @@ export function validateListQuery(query) {
     if ('prixMax' in query) clean.prixMax = queryInteger(query.prixMax, 'prixMax', { min: 0, max: PRIX_MAX });
     if ('disponibles' in query) clean.disponibles = queryBoolean(query.disponibles, 'disponibles');
     if ('mine' in query) clean.mine = queryBoolean(query.mine, 'mine');
+    if ('favoris' in query) clean.favoris = queryBoolean(query.favoris, 'favoris');
     if ('page' in query) clean.page = queryInteger(query.page, 'page', { min: 1, max: 100000 });
     if ('limit' in query) clean.limit = queryInteger(query.limit, 'limit', { min: 1, max: LIMIT_MAX });
     return clean;
