@@ -1,0 +1,36 @@
+# Base de données MongoDB pour le développement local.
+#
+# Les variables sont lues dans backend/.env (copie de backend/.env.example) :
+#   npm run db:up       démarre MongoDB et attend qu'il soit prêt
+#   npm run db:down     arrête MongoDB (les données sont conservées)
+#   npm run db:reset    arrête MongoDB ET supprime les données
+#
+# Équivalent manuel : docker compose --env-file backend/.env up -d --wait mongo
+name: lebondeal
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: lebondeal-mongo
+    restart: unless-stopped
+    ports:
+      # Exposé uniquement sur la machine locale, jamais sur le réseau.
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD manquant, copie backend/.env.example vers backend/.env}"
+      MONGO_APP_USER: ${MONGO_APP_USER:-lebondeal_app}
+      MONGO_APP_PASSWORD: "${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD manquant, copie backend/.env.example vers backend/.env}"
+      MONGO_APP_DB: ${MONGO_APP_DB:-lebondeal}
+    volumes:
+      - mongo-data:/data/db
+      - ./docker/mongo/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  mongo-data:
