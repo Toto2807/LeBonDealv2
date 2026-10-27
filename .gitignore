@@ -1,0 +1,21 @@
+# Dépendances et builds
+node_modules/
+dist/
+coverage/
+
+# Secrets : seuls les fichiers *.example sont versionnés
+.env
+.env.*
+!.env.example
+
+# Logs et fichiers système
+*.log
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+
+# Dossier de livraison généré pour la répartition des pushs (jamais à committer)
+livraison/
