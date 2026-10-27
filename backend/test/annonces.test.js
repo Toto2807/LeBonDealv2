@@ -56,6 +56,7 @@ describe('annonces', () => {
                 codePostal: '69007',
                 ownerId: alice.user.id,
                 vendeur: { id: alice.user.id, nom: 'Alice M.', membreDepuis: expect.any(String) },
+                favori: false,
                 createdAt: expect.any(String),
                 updatedAt: expect.any(String),
             });
@@ -197,6 +198,7 @@ describe('annonces', () => {
                 ['page à 0', '?page=0'],
                 ['q répété', '?q=a&q=b'],
                 ['q trop long', `?q=${'a'.repeat(101)}`],
+                ['favoris invalide', '?favoris=1'],
                 ['paramètre inconnu', '?tri=prix'],
                 ['opérateur injecté', '?q[$ne]=x'],
             ])('400 INVALID_INPUT : %s', async (_label, query) => {

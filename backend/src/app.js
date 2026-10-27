@@ -6,6 +6,7 @@ import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { authRouter } from './routes/authRoutes.js';
 import { userRouter } from './routes/userRoutes.js';
 import { annonceRouter } from './routes/annonceRoutes.js';
+import { favoriRouter } from './routes/favoriRoutes.js';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get('/api/health', (_request, response) => {
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/annonces', annonceRouter);
+app.use('/api/favoris', favoriRouter);
 
 app.use(notFound);
 app.use(errorHandler);

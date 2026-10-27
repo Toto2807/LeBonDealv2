@@ -13,7 +13,7 @@ export async function create(req, res) {
 }
 
 export async function getOne(req, res) {
-    const annonce = await annonceService.getAnnonce(assertObjectId(req.params.id));
+    const annonce = await annonceService.getAnnonce(req.userId, assertObjectId(req.params.id));
     res.status(200).json(annonce);
 }
 

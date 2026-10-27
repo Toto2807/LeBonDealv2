@@ -7,7 +7,8 @@ export function displayName(email) {
 }
 
 // Forme publique d'une annonce. `annonce.ownerId` doit être peuplé avec { email, createdAt }.
-export function serializeAnnonce(annonce) {
+// `favori` indique si l'annonce est dans les favoris de l'utilisateur connecté.
+export function serializeAnnonce(annonce, favori = false) {
     const owner = annonce.ownerId;
     const ownerId = String(annonce.populated('ownerId') ?? owner._id ?? owner);
     return {
@@ -23,6 +24,7 @@ export function serializeAnnonce(annonce) {
         codePostal: annonce.codePostal,
         ownerId,
         vendeur: { id: ownerId, nom: owner?.email ? displayName(owner.email) : 'Vendeur', membreDepuis: owner?.createdAt ?? null },
+        favori,
         createdAt: annonce.createdAt,
         updatedAt: annonce.updatedAt,
     };
