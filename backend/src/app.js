@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config/env.js';
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
+import { authRouter } from './routes/authRoutes.js';
+import { userRouter } from './routes/userRoutes.js';
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.get('/api/health', (_request, response) => {
 });
 
 // --- Routes métier : chaque feature monte son routeur ici ---
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
 
 app.use(notFound);
 app.use(errorHandler);
