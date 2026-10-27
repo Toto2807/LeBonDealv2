@@ -1,11 +1,27 @@
-import 'dotenv/config';
 import app from './app.js';
-import { connectDb } from './config/db.js'
-import { config } from './config/env.js'
-await connectDb(config.mongoUri);
+import { config, assertConfig } from './config/env.js';
+import { connectDb, disconnectDb } from './config/db.js';
 
-const port = Number(process.env.PORT) || 3000;
+try {
+  assertConfig();
+  await connectDb(config.mongoUri);
+} catch (error) {
+  // Le message ne contient jamais l'URI (identifiants) : on affiche seulement la cause.
+  console.error(`Démarrage impossible : ${error.message}`);
+  process.exit(1);
+}
 
-app.listen(port, () => {
-  console.log(`API disponible sur http://localhost:${port}`);
+const server = app.listen(config.port, () => {
+  console.log(`API disponible sur http://localhost:${config.port}`);
 });
+
+async function shutdown(signal) {
+  console.log(`${signal} reçu, arrêt du serveur...`);
+  server.close(async () => {
+    await disconnectDb();
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
