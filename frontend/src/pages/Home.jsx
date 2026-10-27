@@ -4,6 +4,7 @@ import Footer from '../components/Footer.jsx';
 import AnnonceCard from '../components/AnnonceCard.jsx';
 import AnnonceDetail from '../components/AnnonceDetail.jsx';
 import AnnonceForm from '../components/AnnonceForm.jsx';
+import MessagesList from '../components/MessagesList.jsx';
 import Notice from '../components/Notice.jsx';
 import { createAnnonce, deleteAnnonce, updateAnnonce } from '../api/annonces.js';
 import { addFavori, removeFavori } from '../api/favoris.js';
@@ -16,6 +17,7 @@ const TEXTES_VUE = {
   catalogue: ['Toutes les annonces en France', 'Découvrez des objets sélectionnés près de chez vous.'],
   'mes-annonces': ['Espace vendeur — vos articles', 'Suivez vos articles et gérez leur disponibilité.'],
   favoris: ['Vos articles sauvegardés', 'Retrouvez facilement les articles qui vous intéressent.'],
+  messages: ['Vos messages', 'Les acheteurs qui vous ont contacté à propos de vos annonces.'],
 };
 
 export default function Home({ user, onLogout }) {
@@ -41,7 +43,7 @@ export default function Home({ user, onLogout }) {
     disponibles: vue === 'catalogue' && disponibles ? true : undefined,
     limit: LISTE_LIMITE,
   }), [rechercheDifferee, vue, categorie, prixMax, disponibles]);
-  const { annonces, setAnnonces, chargement, erreur, recharger } = useAnnonces(filtres, { groupe: vue });
+  const { annonces, setAnnonces, chargement, erreur, recharger } = useAnnonces(filtres, { groupe: vue, actif: vue !== 'messages' });
   const favoris = useFavoris();
 
   const fermerNotice = useCallback(() => setNotice(null), []);
@@ -156,13 +158,15 @@ export default function Home({ user, onLogout }) {
           </div>
         </section>}
 
-        <div className="results-heading"><h2>{vue === 'catalogue' ? 'À découvrir' : 'Vos annonces'}</h2><span aria-live="polite">{chargement ? 'Chargement…' : compteur}</span></div>
+        {vue === 'messages' && <MessagesList />}
 
-        {erreur && <div className="state-banner" role="alert"><span>{erreur}</span><button className="secondary-button" onClick={recharger}>Réessayer</button></div>}
+        {vue !== 'messages' && <div className="results-heading"><h2>{vue === 'catalogue' ? 'À découvrir' : 'Vos annonces'}</h2><span aria-live="polite">{chargement ? 'Chargement…' : compteur}</span></div>}
 
-        {!erreur && chargement && annonces.length === 0 && <p className="loading-text" role="status">Chargement des annonces…</p>}
+        {vue !== 'messages' && erreur && <div className="state-banner" role="alert"><span>{erreur}</span><button className="secondary-button" onClick={recharger}>Réessayer</button></div>}
 
-        {!erreur && !chargement && annonces.length === 0 && (
+        {vue !== 'messages' && !erreur && chargement && annonces.length === 0 && <p className="loading-text" role="status">Chargement des annonces…</p>}
+
+        {vue !== 'messages' && !erreur && !chargement && annonces.length === 0 && (
           <section className="empty-state">
             <span className="empty-icon" aria-hidden="true">⌕</span>
             <h2>{vue === 'mes-annonces' ? 'Tu n’as pas encore d’annonce' : vue === 'favoris' ? 'Aucun favori pour l’instant' : 'Aucune annonce trouvée'}</h2>
@@ -172,7 +176,7 @@ export default function Home({ user, onLogout }) {
           </section>
         )}
 
-        {annonces.length > 0 && (
+        {vue !== 'messages' && annonces.length > 0 && (
           <section className={chargement ? 'listing-grid is-loading' : 'listing-grid'} aria-label="Liste des annonces" aria-busy={chargement}>
             {annonces.map((annonce) => <AnnonceCard key={annonce.id} annonce={annonce} onOpen={ouvrirDetail} onToggleFavori={basculerFavori} />)}
           </section>
@@ -191,6 +195,7 @@ export default function Home({ user, onLogout }) {
           onChangerStatut={changerStatut}
           onModifier={(annonce) => { fermerDetail(); setFormulaire({ annonce }); }}
           onSupprimer={supprimer}
+          onMessageEnvoye={(text) => setNotice({ type: 'success', text })}
         />
       )}
 
