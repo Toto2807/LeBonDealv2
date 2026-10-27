@@ -40,4 +40,14 @@ export default [
     files: ['frontend/vite.config.js'],
     languageOptions: { globals: globals.node },
   },
+  {
+    files: ['docker/mongo/init/*/.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        db: 'readonly',
+        print: 'readonly',
+      },
+    },
+  }
 ];
