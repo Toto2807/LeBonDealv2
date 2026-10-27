@@ -1,6 +1,7 @@
 {
-  "name": "fullstack-js-starter",
+  "name": "lebondeal",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "workspaces": [
     "frontend",
@@ -10,9 +11,20 @@
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
     "build": "npm run build --workspace frontend",
     "start": "npm run start --workspace backend",
-    "test": "npm run test --workspace backend"
+    "lint": "eslint .",
+    "test": "npm run test --workspace backend",
+    "test:coverage": "npm run test:coverage --workspace backend",
+    "db:up": "docker compose --env-file backend/.env up -d --wait mongo",
+    "db:down": "docker compose --env-file backend/.env down",
+    "db:reset": "docker compose --env-file backend/.env down -v",
+    "db:seed": "npm run seed --workspace backend"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "@eslint/js": "^9.39.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0"
   }
 }
