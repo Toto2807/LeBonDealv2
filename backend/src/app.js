@@ -7,6 +7,7 @@ import { authRouter } from './routes/authRoutes.js';
 import { userRouter } from './routes/userRoutes.js';
 import { annonceRouter } from './routes/annonceRoutes.js';
 import { favoriRouter } from './routes/favoriRoutes.js';
+import { messageRouter } from './routes/messageRoutes.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/annonces', annonceRouter);
 app.use('/api/favoris', favoriRouter);
+app.use('/api/messages', messageRouter);
 
 app.use(notFound);
 app.use(errorHandler);
