@@ -1,40 +1,71 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Home from './pages/Home.jsx';
 import Auth from './pages/Auth.jsx';
+import { ApiError, onUnauthorized, tokenStorage } from './api/http.js';
+import { fetchMe } from './api/auth.js';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [verificationEnCours, setVerificationEnCours] = useState(true);
+  const [erreurReseau, setErreurReseau] = useState(false);
 
+  const logout = useCallback(() => {
+    tokenStorage.clear();
+    setSession(null);
+  }, []);
+
+  // Un 401 sur n'importe quelle requête (jeton expiré ou falsifié) ramène à l'écran de connexion.
   useEffect(() => {
-    const token = localStorage.getItem('lebondeal_token');
+    onUnauthorized(logout);
+    return () => onUnauthorized(null);
+  }, [logout]);
+
+  // Au chargement : le jeton conservé n'est valable que si l'API le confirme.
+  const verifierSession = useCallback(() => {
+    const token = tokenStorage.get();
     if (!token) {
       setVerificationEnCours(false);
       return;
     }
 
-    fetch('/api/users/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Session expirée');
-        const user = await response.json();
-        setSession({ token, user });
+    setVerificationEnCours(true);
+    setErreurReseau(false);
+    fetchMe()
+      .then((user) => setSession({ token, user }))
+      .catch((error) => {
+        // Seul un refus d'authentification invalide le jeton ; les pannes serveur gardent la session.
+        if (error instanceof ApiError && error.status === 401) {
+          tokenStorage.clear();
+          setSession(null);
+        } else {
+          setErreurReseau(true);
+        }
       })
-      .catch(() => localStorage.removeItem('lebondeal_token'))
       .finally(() => setVerificationEnCours(false));
   }, []);
 
-  function handleAuthenticated(result) {
-    localStorage.setItem('lebondeal_token', result.token);
-    setSession({ token: result.token, user: result.user });
-  }
+  useEffect(() => {
+    verifierSession();
+  }, [verifierSession]);
 
-  function logout() {
-    localStorage.removeItem('lebondeal_token');
-    setSession(null);
+  function handleAuthenticated({ token, user }) {
+    tokenStorage.set(token);
+    setSession({ token, user });
   }
 
   if (verificationEnCours) {
-    return <main className="auth-page"><p className="auth-loading">Vérification de ta session…</p></main>;
+    return <main className="auth-page"><p className="auth-loading" role="status">Vérification de ta session…</p></main>;
+  }
+
+  if (erreurReseau) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          <p className="auth-error" role="alert">Le serveur est inaccessible pour le moment.</p>
+          <button className="primary-button auth-submit" type="button" onClick={verifierSession}>Réessayer</button>
+        </section>
+      </main>
+    );
   }
 
   if (!session) return <Auth onAuthenticated={handleAuthenticated} />;
