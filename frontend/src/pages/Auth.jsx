@@ -1,4 +1,15 @@
 import { useState } from 'react';
+import { login, register } from '../api/auth.js';
+
+// Messages lisibles par code d'erreur contractuel ; les 400 affichent le détail renvoyé par l'API.
+function messageFor(error, mode) {
+  if (error.code === 'UNAUTHORIZED') return 'Email ou mot de passe incorrect.';
+  if (error.code === 'EMAIL_ALREADY_USED') return 'Un compte existe déjà avec cet email. Connecte-toi plutôt.';
+  if (error.code === 'INVALID_INPUT') {
+    return mode === 'register' ? `Inscription impossible : ${error.message}.` : 'Saisis un email et un mot de passe valides.';
+  }
+  return error.message;
+}
 
 export default function Auth({ onAuthenticated }) {
   const [mode, setMode] = useState('login');
@@ -18,35 +29,19 @@ export default function Auth({ onAuthenticated }) {
 
     setEnCours(true);
     try {
-      const credentials = { email, password };
-      let response = await fetch(`/api/auth/${mode === 'register' ? 'register' : 'login'}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-      let result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Impossible de se connecter.');
-
-      // L'API actuelle ne renvoie pas encore de jeton après l'inscription.
-      if (mode === 'register' && !result.token) {
-        response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        });
-        result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Compte créé. Connecte-toi pour continuer.');
-      }
-
-      if (!result.token) throw new Error('L’API n’a pas renvoyé de jeton de connexion.');
-      onAuthenticated({ ...result, user: result.user || { email } });
+      const credentials = { email: email.trim(), password };
+      const result = mode === 'register' ? await register(credentials) : await login(credentials);
+      onAuthenticated(result);
     } catch (requestError) {
-      setError(requestError.message === 'Failed to fetch'
-        ? 'Le serveur d’authentification est inaccessible.'
-        : requestError.message);
+      setError(messageFor(requestError, mode));
     } finally {
       setEnCours(false);
     }
+  }
+
+  function changeMode(nextMode) {
+    setMode(nextMode);
+    setError('');
   }
 
   return (
@@ -58,14 +53,14 @@ export default function Auth({ onAuthenticated }) {
         <p className="auth-subtitle">{mode === 'login' ? 'Connecte-toi pour retrouver les bonnes affaires.' : 'Inscris-toi pour découvrir et publier des annonces.'}</p>
 
         <div className="auth-tabs" role="tablist" aria-label="Authentification">
-          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError(''); }}>Connexion</button>
-          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError(''); }}>Créer un compte</button>
+          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => changeMode('login')}>Connexion</button>
+          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => changeMode('register')}>Créer un compte</button>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>Adresse e-mail<input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="toi@exemple.fr" /></label>
-          <label>Mot de passe<input required type="password" minLength="8" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="8 caractères minimum" /></label>
-          {mode === 'register' && <label>Confirmer le mot de passe<input required type="password" minLength="8" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="Répète ton mot de passe" /></label>}
+          <label>Mot de passe<input required type="password" minLength="8" maxLength="72" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="8 caractères minimum" /></label>
+          {mode === 'register' && <label>Confirmer le mot de passe<input required type="password" minLength="8" maxLength="72" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="Répète ton mot de passe" /></label>}
           {error && <p className="auth-error" role="alert">{error}</p>}
           <button className="primary-button auth-submit" type="submit" disabled={enCours}>{enCours ? 'Connexion…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'} <span>→</span></button>
         </form>
