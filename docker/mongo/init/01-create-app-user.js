@@ -1,3 +1,4 @@
+/* global db, print, process */
 // Exécuté UNE SEULE FOIS par l'image mongo, à la première création du volume.
 // Crée un utilisateur applicatif limité (readWrite) au lieu d'utiliser le compte root.
 // Pour rejouer ce script : npm run db:reset puis npm run db:up.

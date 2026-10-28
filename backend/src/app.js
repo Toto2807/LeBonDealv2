@@ -1,28 +1,28 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from "helmet";
+import helmet from 'helmet';
 import { config } from './config/env.js';
-import { taskRouter } from './routes/taskRoutes.js';
-import { userRouter } from './routes/userRoutes.js';
-import { authRouter } from './routes/authRoutes.js';
+import { notFound, errorHandler } from './middlewares/errorHandler.js';
+import { apiRouters } from './routes/index.js';
+import { docsRouter } from './docs/swagger.js';
 
 const app = express();
 
-app.use(express.json());
 app.use(helmet());
-app.use(cors({
-  origin: config.corsOrigin
-}));
+app.use(cors({ origin: config.corsOrigin }));
+app.use(express.json({ limit: '100kb' }));
 
-app.get('/', (_request, response) => {
-  response.status(200).json({ status: 'API - Cours Dev Full stack' });
-});
 app.get('/api/health', (_request, response) => {
   response.status(200).json({ status: 'ok' });
 });
 
-app.use('/api/tasks', taskRouter);
-app.use('/api/users', userRouter);
-app.use('/api/auth', authRouter);
+// --- Routes métier (liste dans routes/index.js) et documentation OpenAPI ---
+for (const [path, router] of apiRouters) {
+  app.use(path, router);
+}
+app.use('/api', docsRouter);
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

@@ -52,3 +52,4 @@ export default function Modal({ titleId, className, onClose, children }) {
     </div>
   );
 }
+

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Hygiène du dépôt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aucun secret ni dépendance versionnés
+        run: |
+          status=0
+          if git ls-files | grep -E '(^|/)\.env(\.|$)' | grep -v -E '\.env\.example$'; then
+            echo "::error::Un fichier .env est versionné (seul .env.example est autorisé)"
+            status=1
+          fi
+          if git ls-files | grep -E '(^|/)node_modules/'; then
+            echo "::error::node_modules est versionné"
+            status=1
+          fi
+          exit $status
+
+  qualite:
+    name: Lint et build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: Build du frontend (Vite)
+        run: npm run build
+
+  tests:
+    name: Tests Jest/Supertest (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    services:
+      # Base MongoDB jetable, propre à cette exécution : les tests n'utilisent jamais une base de dev.
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      MONGODB_URI_TEST: mongodb://localhost:27017/lebondeal_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Tests avec couverture
+        run: npm run test:coverage
+      - name: Rapport de couverture
+        if: matrix.node == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture-backend
+          path: backend/coverage
+          retention-days: 7
