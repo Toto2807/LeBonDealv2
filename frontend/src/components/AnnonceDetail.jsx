@@ -2,11 +2,13 @@ import { useState } from 'react';
 import Modal from './Modal.jsx';
 import AnnoncePhoto from './AnnoncePhoto.jsx';
 import StatusBadge from './StatusBadge.jsx';
+import ContactForm from './ContactForm.jsx';
 import { STATUTS } from '../constants.js';
 import { formatDateRelative, formatMembreDepuis, formatPrix } from '../utils/format.js';
 
-export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur, onClose, onChangerStatut, onModifier, onSupprimer }) {
+export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur, onClose, onChangerStatut, onModifier, onSupprimer, onMessageEnvoye }) {
   const [confirmation, setConfirmation] = useState(false);
+  const [contactOuvert, setContactOuvert] = useState(false);
   const vendeur = annonce.vendeur;
 
   return (
@@ -35,6 +37,9 @@ export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur
           <strong>{estProprietaire ? `${vendeur.nom} (vous)` : vendeur.nom}</strong>
           <span>Membre depuis {formatMembreDepuis(vendeur.membreDepuis)}</span>
         </div>
+        {!estProprietaire && !contactOuvert && (
+          <div className="detail-actions"><button type="button" className="primary-button" onClick={() => setContactOuvert(true)}>✉ Contacter</button></div>
+        )}
         {estProprietaire && (
           <div className="detail-actions">
             <select aria-label="Statut de l’annonce" value={annonce.statut} disabled={occupe} onChange={(event) => onChangerStatut(annonce, event.target.value)}>
@@ -45,6 +50,8 @@ export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur
           </div>
         )}
       </div>
+
+      {!estProprietaire && contactOuvert && <ContactForm annonce={annonce} onSent={onMessageEnvoye} onCancel={() => setContactOuvert(false)} />}
 
       {confirmation && (
         <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title">

@@ -9,6 +9,7 @@ export default function Header({ vue, setVue, recherche, setRecherche, favorisCo
       <label className="search-box">
         <span aria-hidden="true">⌕</span>
         <input
+          aria-label="Rechercher une annonce"
           value={recherche}
           onChange={(event) => setRecherche(event.target.value)}
           placeholder="Que recherchez-vous ? (ex : vélo, MacBook…)"
@@ -22,6 +23,7 @@ export default function Header({ vue, setVue, recherche, setRecherche, favorisCo
           ♡ <span className="nav-fav-label">Favoris</span>
           {favorisCount > 0 && <span className="fav-count">{favorisCount}</span>}
         </button>
+        <button className={vue === 'messages' ? 'nav-link active' : 'nav-link'} onClick={() => setVue('messages')}>Messages</button>
         <button className="primary-button header-deposit" onClick={onDeposer}><span>＋</span> Déposer</button>
         <div className="account-actions"><span className="account-email" title={user?.email}>{user?.email}</span><button className="logout-button" onClick={onLogout}>Déconnexion</button></div>
       </nav>
