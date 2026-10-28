@@ -33,13 +33,9 @@ export default function App() {
     fetchMe()
       .then((user) => setSession({ token, user }))
       .catch((error) => {
-        // Seul un refus d'authentification invalide le jeton ; les pannes serveur gardent la session.
-        if (error instanceof ApiError && error.status === 401) {
-          tokenStorage.clear();
-          setSession(null);
-        } else {
-          setErreurReseau(true);
-        }
+        // Seul un refus d'authentification (401) invalide le jeton : une panne réseau ne déconnecte pas.
+        if (error instanceof ApiError && error.status === 0) setErreurReseau(true);
+        else tokenStorage.clear();
       })
       .finally(() => setVerificationEnCours(false));
   }, []);
