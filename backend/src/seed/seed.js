@@ -71,7 +71,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         await connectDb(config.mongoUri);
         // Garantit les index (unicité) avant d'insérer.
         await Promise.all([User, Annonce, Favori, Message, Image].map((model) => model.init()));
-        const summary = await seedDatabase();
+        // const summary = await seedDatabase();
     } catch (error) {
         process.exitCode = 1;
     } finally {

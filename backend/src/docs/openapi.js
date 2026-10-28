@@ -101,7 +101,7 @@ export const openApiDocument = {
             get: {
                 tags: ['Annonces'],
                 summary: 'Lister les annonces',
-                description: `Catalogue partagé, du plus récent au plus ancien. Retourne \{"items": []}\` si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
+                description: `Catalogue partagé, du plus récent au plus ancien. Retourne {"items": []} si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
                 security: secured,
                 parameters: [
                     queryParam('q', 'Recherche dans le titre (insensible à la casse et aux accents : « velo » trouve « Vélo »)', { type: 'string', minLength: 1, maxLength: 100 }),
