@@ -2,8 +2,8 @@ import { displayName } from './annonceSerializer.js';
 
 export const nomDe = (user) => (user?.email ? displayName(user.email) : 'Utilisateur');
 
-// Message d'une conversation, vu par userId.
-// fromId et toId doivent être peuplés avec { email }, annonceId avec { titre }.
+// Message d'une conversation, vu par `userId`.
+// `fromId` et `toId` doivent être peuplés avec { email }, `annonceId` avec { titre }.
 export function serializeMessage(message, userId) {
     const fromId = String(message.populated('fromId') ?? message.fromId);
     const toId = String(message.populated('toId') ?? message.toId);

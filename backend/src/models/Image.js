@@ -4,7 +4,7 @@ export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 // Photos d'annonces stockées dans MongoDB (aucun fichier sur disque). Une annonce y fait référence
-// par son champ photo = "/api/images/<id>".
+// par son champ `photo` = "/api/images/<id>".
 const imageSchema = new mongoose.Schema(
     {
         data: { type: Buffer, required: true },

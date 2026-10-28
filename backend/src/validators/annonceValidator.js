@@ -1,6 +1,7 @@
 import { invalidInput } from '../errors/AppError.js';
 import { CATEGORIES, ETATS, STATUTS, PRIX_MAX } from '../models/Annonce.js';
 import { assertBodyObject, assertAllowedKeys, cleanString, cleanEnum, cleanInteger } from './common.js';
+import { IMAGE_URL } from '../utils/images.js';
 
 const WRITABLE_FIELDS = ['titre', 'description', 'prix', 'categorie', 'etat', 'statut', 'photo', 'ville', 'codePostal'];
 const REQUIRED_ON_CREATE = ['titre', 'prix', 'categorie', 'ville'];
@@ -9,6 +10,8 @@ const CODE_POSTAL = /^\d{5}$/;
 function cleanPhoto(value) {
     if (value === null) return null;
     const url = cleanString(value, 'photo', { max: 500 });
+    // Photo téléversée via POST /api/images (son appartenance est vérifiée par le service).
+    if (IMAGE_URL.test(url)) return url;
     let parsed;
     try {
         parsed = new URL(url);

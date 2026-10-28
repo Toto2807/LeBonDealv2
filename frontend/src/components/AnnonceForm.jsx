@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from './Modal.jsx';
+import PhotoDropzone from './PhotoDropzone.jsx';
 import { CATEGORIES, ETATS } from '../constants.js';
 
 const VIDE = { titre: '', prix: '', categorie: CATEGORIES[0], etat: 'Très bon état', ville: '', codePostal: '', photo: '', description: '' };
@@ -39,6 +40,7 @@ export default function AnnonceForm({ annonce, onSubmit, onClose }) {
   const [form, setForm] = useState(enEdition ? depuisAnnonce(annonce) : VIDE);
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
+  const [photoEnCours, setPhotoEnCours] = useState(false);
 
   const champ = (nom) => ({ value: form[nom], onChange: (event) => setForm({ ...form, [nom]: event.target.value }) });
 
@@ -69,13 +71,11 @@ export default function AnnonceForm({ annonce, onSubmit, onClose }) {
           <label>État<select {...champ('etat')}>{ETATS.map((etat) => <option key={etat}>{etat}</option>)}</select></label>
           <label>Ville *<input required maxLength="80" {...champ('ville')} placeholder="Ex. Bordeaux" /></label>
         </div>
-        <div className="form-columns">
-          <label>Code postal <span className="field-hint">(facultatif)</span><input inputMode="numeric" pattern="[0-9]{5}" title="5 chiffres" {...champ('codePostal')} placeholder="33000" /></label>
-          <label>Photo (URL) <span className="field-hint">(facultatif)</span><input type="url" maxLength="500" {...champ('photo')} placeholder="https://…" /></label>
-        </div>
+        <label><span>Code postal <span className="field-hint">(facultatif)</span></span><input inputMode="numeric" pattern="[0-9]{5}" title="5 chiffres" {...champ('codePostal')} placeholder="33000" /></label>
+        <PhotoDropzone value={form.photo || null} onChange={(url) => setForm((courant) => ({ ...courant, photo: url ?? '' }))} onBusyChange={setPhotoEnCours} />
         <label>Description<textarea rows="4" maxLength="2000" {...champ('description')} placeholder="Décris l’état et les accessoires inclus…" /></label>
         {erreur && <p className="form-error" role="alert">{erreur}</p>}
-        <button type="submit" className="primary-button submit-button" disabled={enCours}>{enCours ? 'Envoi…' : enEdition ? 'Enregistrer les modifications' : 'Publier mon annonce'} <span>→</span></button>
+        <button type="submit" className="primary-button submit-button" disabled={enCours || photoEnCours}>{enCours ? 'Envoi…' : enEdition ? 'Enregistrer les modifications' : 'Publier mon annonce'} <span>→</span></button>
       </form>
     </Modal>
   );

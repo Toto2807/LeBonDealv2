@@ -6,7 +6,7 @@ import ContactForm from './ContactForm.jsx';
 import { STATUTS } from '../constants.js';
 import { formatDateRelative, formatMembreDepuis, formatPrix } from '../utils/format.js';
 
-export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur, onClose, onChangerStatut, onModifier, onSupprimer, onMessageEnvoye }) {
+export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur, onClose, onChangerStatut, onModifier, onSupprimer, onMessageEnvoye, onOuvrirConversation }) {
   const [confirmation, setConfirmation] = useState(false);
   const [contactOuvert, setContactOuvert] = useState(false);
   const vendeur = annonce.vendeur;
@@ -51,7 +51,7 @@ export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur
         )}
       </div>
 
-      {!estProprietaire && contactOuvert && <ContactForm annonce={annonce} onSent={onMessageEnvoye} onCancel={() => setContactOuvert(false)} />}
+      {!estProprietaire && contactOuvert && <ContactForm annonce={annonce} onSent={onMessageEnvoye} onCancel={() => setContactOuvert(false)} onOuvrirConversation={() => onOuvrirConversation(annonce)} />}
 
       {confirmation && (
         <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title">

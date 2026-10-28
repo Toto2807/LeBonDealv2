@@ -1,4 +1,6 @@
-export default function Header({ vue, setVue, recherche, setRecherche, favorisCount, onDeposer, user, onLogout }) {
+import SearchBox from './SearchBox.jsx';
+
+export default function Header({ vue, setVue, recherche, setRecherche, onSuggestion, favorisCount, onDeposer, user, onLogout }) {
   return (
     <header className="market-header">
       <button className="brand" onClick={() => setVue('catalogue')} aria-label="LeBonDeal, accueil">
@@ -6,15 +8,7 @@ export default function Header({ vue, setVue, recherche, setRecherche, favorisCo
         <span>LeBon<span className="brand-accent">Deal</span></span>
       </button>
 
-      <label className="search-box">
-        <span aria-hidden="true">⌕</span>
-        <input
-          aria-label="Rechercher une annonce"
-          value={recherche}
-          onChange={(event) => setRecherche(event.target.value)}
-          placeholder="Que recherchez-vous ? (ex : vélo, MacBook…)"
-        />
-      </label>
+      <SearchBox value={recherche} onChange={setRecherche} onSelect={onSuggestion} />
 
       <nav className="market-nav" aria-label="Navigation principale">
         <button className={vue === 'catalogue' ? 'nav-link active' : 'nav-link'} onClick={() => setVue('catalogue')}>Catalogue</button>

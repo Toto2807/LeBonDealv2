@@ -53,7 +53,10 @@ function buildQuery(query) {
 
 export async function request(path, { method = 'GET', body, query, auth = true, signal } = {}) {
   const headers = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Un fichier (Blob) est envoyé tel quel avec son propre type ; tout le reste est du JSON.
+  const estFichier = body instanceof Blob;
+  if (estFichier) headers['Content-Type'] = body.type;
+  else if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = auth ? tokenStorage.get() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -62,7 +65,7 @@ export async function request(path, { method = 'GET', body, query, auth = true, 
     response = await fetch(`/api${path}${buildQuery(query)}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || estFichier ? body : JSON.stringify(body),
       signal,
     });
   } catch (error) {

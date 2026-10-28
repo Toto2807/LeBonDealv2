@@ -2,11 +2,13 @@ import { CATEGORIES, ETATS, STATUTS, PRIX_MAX } from '../models/Annonce.js';
 import { MESSAGE_MAX } from '../models/Message.js';
 import { LIMIT_DEFAULT, LIMIT_MAX } from '../validators/annonceValidator.js';
 
-const ref = (name) => ({ $ref: `#/components/schemas/${name}`});
-const response = (name) => ({ $ref: `#/components/responses/${name}`});
+const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
+const response = (name) => ({ $ref: `#/components/responses/${name}` });
 const json = (schema, example) => ({ content: { 'application/json': { schema, ...(example && { example }) } } });
 const body = (schema, example) => ({ required: true, ...json(schema, example) });
 const secured = [{ bearerAuth: [] }];
+const binary = { type: 'string', format: 'binary' };
+const imageContent = { 'image/jpeg': { schema: binary }, 'image/png': { schema: binary }, 'image/webp': { schema: binary } };
 
 const idParam = (name, description) => ({ name, in: 'path', required: true, description, schema: { type: 'string', pattern: '^[0-9a-fA-F]{24}$', example: '507f1f77bcf86cd799439011' } });
 const queryParam = (name, description, schema) => ({ name, in: 'query', required: false, description, schema });
@@ -36,10 +38,10 @@ export const openApiDocument = {
         version: '1.0.0',
         description:
             'API REST de la marketplace LeBonDeal (Express + MongoDB).\n\n' +
-            'Toutes les routes métier exigent un JWT : obtenez-le avec ⁠ POST /api/auth/register ⁠ ou ⁠ POST /api/auth/login ⁠, ' +
-            'puis cliquez sur *Authorize* et collez le jeton (sans le préfixe ⁠ Bearer ⁠).\n\n' +
+            'Toutes les routes métier exigent un JWT : obtenez-le avec `POST /api/auth/register` ou `POST /api/auth/login`, ' +
+            'puis cliquez sur **Authorize** et collez le jeton (sans le préfixe `Bearer`).\n\n' +
             'Catalogue partagé : tout compte connecté peut lire les annonces, mais seul le propriétaire peut les modifier ou les supprimer ' +
-            '(un autre compte reçoit ⁠ 404 NOT_FOUND ⁠). Les exemples ne contiennent que des données fictives.',
+            '(un autre compte reçoit `404 NOT_FOUND`). Les exemples ne contiennent que des données fictives.',
     },
     servers: [{ url: '/', description: 'Serveur courant' }],
     tags: [
@@ -48,6 +50,7 @@ export const openApiDocument = {
         { name: 'Annonces' },
         { name: 'Favoris' },
         { name: 'Messages' },
+        { name: 'Images' },
     ],
     paths: {
         '/api/health': {
@@ -101,7 +104,7 @@ export const openApiDocument = {
             get: {
                 tags: ['Annonces'],
                 summary: 'Lister les annonces',
-                description: `Catalogue partagé, du plus récent au plus ancien. Retourne {"items": []} si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
+                description: `Catalogue partagé, du plus récent au plus ancien. Retourne \`{"items": []}\` si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
                 security: secured,
                 parameters: [
                     queryParam('q', 'Recherche dans le titre (insensible à la casse et aux accents : « velo » trouve « Vélo »)', { type: 'string', minLength: 1, maxLength: 100 }),
@@ -124,7 +127,7 @@ export const openApiDocument = {
             post: {
                 tags: ['Annonces'],
                 summary: 'Publier une annonce',
-                description: 'Le propriétaire est toujours le compte du JWT : ⁠ ownerId ⁠ et ⁠ id ⁠ fournis par le client sont refusés (400).',
+                description: 'Le propriétaire est toujours le compte du JWT : `ownerId` et `id` fournis par le client sont refusés (400).',
                 security: secured,
                 requestBody: body(ref('AnnonceCreate'), { titre: 'Vélo de ville vintage', prix: 260, categorie: 'Loisirs & Sport', ville: 'Lyon' }),
                 responses: {
@@ -138,7 +141,7 @@ export const openApiDocument = {
             get: {
                 tags: ['Annonces'],
                 summary: 'Suggestions de recherche',
-                description: 'Propose des catégories, états, villes et titres d’annonces correspondant au texte saisi (insensible à la casse et aux accents). Sans ⁠ q ⁠ : les catégories et les villes les plus présentes. Au plus 12 propositions.',
+                description: 'Propose des catégories, états, villes et titres d’annonces correspondant au texte saisi (insensible à la casse et aux accents). Sans `q` : les catégories et les villes les plus présentes. Au plus 12 propositions.',
                 security: secured,
                 parameters: [queryParam('q', 'Texte saisi', { type: 'string', minLength: 1, maxLength: 100 })],
                 responses: {
@@ -164,7 +167,7 @@ export const openApiDocument = {
             patch: {
                 tags: ['Annonces'],
                 summary: 'Modifier une annonce (propriétaire uniquement)',
-                description: 'Modification partielle : le corps doit contenir au moins un champ modifiable. ⁠ photo ⁠ et ⁠ codePostal ⁠ peuvent valoir ⁠ null ⁠. Une annonce d’un autre compte répond 404.',
+                description: 'Modification partielle : le corps doit contenir au moins un champ modifiable. `photo` et `codePostal` peuvent valoir `null`. Une annonce d’un autre compte répond 404.',
                 security: secured,
                 parameters: [idParam('id', 'Identifiant de l’annonce')],
                 requestBody: body(ref('AnnonceUpdate'), { statut: 'RESERVEE' }),
@@ -209,7 +212,7 @@ export const openApiDocument = {
             put: {
                 tags: ['Favoris'],
                 summary: 'Ajouter une annonce aux favoris',
-                description: 'Idempotent. La liste des favoris se lit avec ⁠ GET /api/annonces?favoris=true ⁠.',
+                description: 'Idempotent. La liste des favoris se lit avec `GET /api/annonces?favoris=true`.',
                 security: secured,
                 parameters: [idParam('annonceId', 'Identifiant de l’annonce')],
                 responses: {
@@ -229,6 +232,34 @@ export const openApiDocument = {
                     204: { description: 'Favori retiré (aucun corps)' },
                     400: response('InvalidInput'),
                     401: response('Unauthorized'),
+                },
+            },
+        },
+        '/api/images': {
+            post: {
+                tags: ['Images'],
+                summary: 'Envoyer une photo',
+                description: 'Le corps est le fichier image lui-même et l’en-tête `Content-Type` son type (`image/jpeg`, `image/png` ou `image/webp`), 5 Mo maximum. Le contenu réel est vérifié (pas seulement le type déclaré). La réponse donne l’URL à placer dans le champ `photo` d’une annonce : seul le compte qui a envoyé l’image peut l’attacher à une de ses annonces.',
+                security: secured,
+                requestBody: { required: true, content: imageContent },
+                responses: {
+                    201: { description: 'Image enregistrée', ...json(ref('Image'), { id: '507f1f77bcf86cd799439011', url: '/api/images/507f1f77bcf86cd799439011', contentType: 'image/jpeg', size: 184320 }) },
+                    400: response('InvalidInput'),
+                    401: response('Unauthorized'),
+                },
+            },
+        },
+        '/api/images/{id}': {
+            get: {
+                tags: ['Images'],
+                summary: 'Afficher une photo (public)',
+                description: 'Route publique : une balise `<img>` ne peut pas envoyer de JWT. L’identifiant n’est pas devinable ; la réponse est mise en cache longtemps.',
+                security: [],
+                parameters: [idParam('id', 'Identifiant de l’image')],
+                responses: {
+                    200: { description: 'Octets de l’image', content: imageContent },
+                    400: response('InvalidInput'),
+                    404: response('NotFound'),
                 },
             },
         },
@@ -336,7 +367,7 @@ export const openApiDocument = {
                     categorie: { type: 'string', enum: CATEGORIES },
                     etat: { type: 'string', enum: ETATS },
                     statut: { type: 'string', enum: STATUTS },
-                    photo: { type: 'string', nullable: true, description: 'URL http(s)' },
+                    photo: { type: 'string', nullable: true, description: 'URL http(s) ou /api/images/<id> (photo envoyée via POST /api/images)' },
                     ville: { type: 'string', maxLength: 80 },
                     codePostal: { type: 'string', nullable: true, pattern: '^\\d{5}$' },
                     ownerId: { type: 'string', readOnly: true },
@@ -357,7 +388,7 @@ export const openApiDocument = {
                     categorie: { type: 'string', enum: CATEGORIES },
                     etat: { type: 'string', enum: ETATS, default: 'Très bon état' },
                     statut: { type: 'string', enum: STATUTS, default: 'DISPONIBLE' },
-                    photo: { type: 'string', nullable: true, maxLength: 500 },
+                    photo: { type: 'string', nullable: true, maxLength: 500, description: 'URL http(s) ou /api/images/<id> renvoyé par POST /api/images' },
                     ville: { type: 'string', minLength: 1, maxLength: 80 },
                     codePostal: { type: 'string', nullable: true, pattern: '^\\d{5}$' },
                 },
@@ -373,7 +404,7 @@ export const openApiDocument = {
                     categorie: { type: 'string', enum: CATEGORIES },
                     etat: { type: 'string', enum: ETATS },
                     statut: { type: 'string', enum: STATUTS },
-                    photo: { type: 'string', nullable: true, maxLength: 500 },
+                    photo: { type: 'string', nullable: true, maxLength: 500, description: 'URL http(s) ou /api/images/<id> renvoyé par POST /api/images' },
                     ville: { type: 'string', minLength: 1, maxLength: 80 },
                     codePostal: { type: 'string', nullable: true, pattern: '^\\d{5}$' },
                 },
@@ -383,6 +414,16 @@ export const openApiDocument = {
                 required: ['message'],
                 additionalProperties: false,
                 properties: { message: { type: 'string', minLength: 1, maxLength: MESSAGE_MAX } },
+            },
+            Image: {
+                type: 'object',
+                required: ['id', 'url', 'contentType', 'size'],
+                properties: {
+                    id: { type: 'string' },
+                    url: { type: 'string', description: 'À placer dans le champ photo d’une annonce' },
+                    contentType: { type: 'string', enum: ['image/jpeg', 'image/png', 'image/webp'] },
+                    size: { type: 'integer', description: 'Taille en octets' },
+                },
             },
             Suggestion: {
                 type: 'object',

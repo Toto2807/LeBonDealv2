@@ -7,10 +7,12 @@ Marketplace de petites annonces de seconde main (projet étudiant EFREI, module 
 ## Fonctionnalités
 
 - Inscription, connexion, déconnexion (JWT) ; la session survit au rechargement de la page.
-- Catalogue partagé avec recherche, filtre par catégorie, prix maximum et « disponibles uniquement ».
+- Catalogue partagé avec recherche (insensible à la casse et aux accents : « velo » trouve « Vélo »), filtres par catégorie, état, ville, prix maximum et « disponibles uniquement ».
+- Barre de recherche avec propositions tirées du catalogue (catégories, états, villes, titres d'annonces), utilisable au clavier.
 - Déposer, consulter, modifier, supprimer ses annonces et changer leur statut (disponible, réservée, vendue).
 - Favoris persistés par compte.
-- Contacter un vendeur et lire ses messages reçus.
+- Photos d'annonces envoyées depuis l'ordinateur ou le téléphone (glisser-déposer ou choix de fichier), redimensionnées avant envoi et stockées dans MongoDB.
+- Messagerie : contacter un vendeur, puis échanger dans une conversation où acheteur et vendeur peuvent répondre.
 - Interface responsive, utilisable au clavier.
 
 ## Versions et prérequis
@@ -95,14 +97,19 @@ Contrat complet et exécutable sur `/api/docs` (Swagger UI, JSON brut sur `/api/
 | `POST` | `/api/auth/register` | 201 `{user:{id,email}, token}` |
 | `POST` | `/api/auth/login` | 200 `{user:{id,email}, token}` |
 | `GET` | `/api/users/me` | 200 `{id,email}` |
-| `GET` | `/api/annonces` | 200 `{items:[…]}` (filtres `q`, `categorie`, `prixMax`, `disponibles`, `mine`, `favoris`, `page`, `limit`) |
+| `GET` | `/api/annonces` | 200 `{items:[…]}` (filtres `q`, `categorie`, `etat`, `ville`, `prixMax`, `disponibles`, `mine`, `favoris`, `page`, `limit`) |
 | `POST` | `/api/annonces` | 201 annonce créée |
 | `GET` `PATCH` `DELETE` | `/api/annonces/:id` | 200 · 200 · 204 sans corps |
 | `PUT` `DELETE` | `/api/favoris/:annonceId` | 204 (idempotents) |
-| `POST` | `/api/annonces/:id/messages` | 201 message envoyé au vendeur |
-| `GET` | `/api/messages` | 200 `{items:[…]}` messages reçus |
+| `GET` | `/api/annonces/suggestions` | 200 `{items:[{type,value}]}` propositions de recherche |
+| `POST` | `/api/images` | 201 `{id,url,…}` envoie une photo (corps = fichier JPEG/PNG/WebP, 5 Mo max) |
+| `GET` | `/api/images/:id` | 200 octets de la photo (**public** : une balise `<img>` n'envoie pas de JWT) |
+| `POST` | `/api/annonces/:id/messages` | 201 premier message d'un acheteur au vendeur |
+| `GET` | `/api/conversations` | 200 `{items:[…]}` mes conversations (envoyées et reçues) |
+| `GET` | `/api/conversations/:annonceId/:interlocuteurId` | 200 le fil de discussion (réservé aux deux participants) |
+| `POST` | `/api/conversations/:annonceId/:interlocuteurId/messages` | 201 répondre dans une conversation existante |
 
-Toutes les routes sauf `health`, `register`, `login` et `docs` exigent `Authorization: Bearer <jwt>`.
+Toutes les routes sauf `health`, `register`, `login`, `docs` et `GET /api/images/:id` exigent `Authorization: Bearer <jwt>`.
 
 Erreurs, toujours au même format `{"error":{"code","message"}}` :
 
@@ -138,6 +145,7 @@ backend/src/
   validators/           TOUTE la validation côté serveur (types, longueurs, énumérations, champs interdits)
   services/             logique métier et accès aux modèles (propriété, favoris, messages, JWT, bcrypt)
   serializers/          forme JSON publique des annonces/messages (aucun champ sensible)
+  utils/                recherche insensible aux accents, URL des photos
   models/               schémas Mongoose et index
   middlewares/          requireAuth (JWT Bearer), errorHandler (format d'erreur commun)
   docs/                 document OpenAPI et Swagger UI
@@ -157,7 +165,7 @@ docker-compose.prod.yml pile complète (MongoDB + API + nginx)
 - **Modifier/supprimer = propriétaire uniquement.** La requête MongoDB filtre sur `{_id, ownerId}` : une annonce d'un autre compte et une annonce inexistante donnent la même réponse `404`, ce qui ne révèle pas son existence. `401` signifie « pas authentifié », `404` « rien à vous ici ».
 - **Mots de passe** : hash bcrypt (jamais stockés ni renvoyés), 8 à 72 octets (bcrypt ignore le reste), comparaison à temps comparable même quand l'email est inconnu, message de connexion identique pour « email inconnu » et « mauvais mot de passe ».
 - **JWT** : HS256 (algorithme imposé), signé avec `JWT_SECRET` côté serveur uniquement, expire après `JWT_EXPIRES_IN`. Le jeton est conservé dans le `localStorage` du navigateur : il survit au rechargement mais un script injecté (XSS) pourrait le lire ; c'est pourquoi le front n'injecte jamais de HTML brut (React échappe le texte) et que la durée de vie est courte. À l'expiration, la première requête reçoit un 401 et l'interface ramène à la connexion. Alternative plus robuste : cookie `HttpOnly` + protection CSRF.
-- **Validation côté serveur** (`backend/src/validators/`) : types stricts (une injection `{"$ne":null}` est rejetée), longueurs, énumérations, URL de photo en `http(s)` uniquement, filtres de recherche échappés.
+- **Validation côté serveur** (`backend/src/validators/`) : types stricts (une injection `{"$ne":null}` est rejetée), longueurs, énumérations, URL de photo en `http(s)` ou photo téléversée par son propriétaire, filtres de recherche échappés.
 - En-têtes de sécurité avec Helmet, CORS limité à `CORS_ORIGIN`, corps JSON limité à 100 ko.
 
 ### Catalogue partagé (écart assumé avec l'énoncé)
@@ -196,8 +204,8 @@ Une branche par fonctionnalité, une pull request par branche (modèle dans `.gi
 
 - Pas de réinitialisation de mot de passe ni de vérification d'email ; pas de limitation de débit sur la connexion.
 - Pas de jeton de rafraîchissement : reconnexion à l'expiration du JWT.
-- Photos par URL uniquement (pas d'envoi de fichier) ; le nom du vendeur est déduit du début de l'email (`prénom.nom` → « Prénom N. »).
-- Messagerie à sens unique : le vendeur lit les messages mais ne peut pas répondre dans l'application.
+- Photos : JPEG, PNG ou WebP, 5 Mo maximum, vérifiées sur leur contenu réel (le SVG est refusé car il peut contenir du script) et stockées dans MongoDB ; une photo envoyée mais jamais publiée (formulaire abandonné) reste en base, un nettoyage périodique serait à prévoir. Le nom du vendeur est déduit du début de l'email (`prénom.nom` → « Prénom N. »).
+- Messagerie : pas de temps réel (la conversation ouverte se rafraîchit toutes les 10 secondes), ni de compteur de messages non lus, ni de notification par email.
 - Recherche par expression régulière sur le titre (un index texte serait préférable à grande échelle) ; listes limitées à 100 annonces par page.
 - Suppression en cascade non transactionnelle (voir `docs/BDD.md`).
 - Les tests du front (composants) ne sont pas automatisés : le parcours a été vérifié à la main dans le navigateur.

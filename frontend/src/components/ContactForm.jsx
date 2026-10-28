@@ -4,7 +4,7 @@ import { sendMessage } from '../api/messages.js';
 const MESSAGE_MAX = 1000;
 
 // Formulaire "Contacter le vendeur" affiché dans le détail d'une annonce d'un autre compte.
-export default function ContactForm({ annonce, onSent, onCancel }) {
+export default function ContactForm({ annonce, onSent, onCancel, onOuvrirConversation }) {
   const [message, setMessage] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
@@ -26,7 +26,12 @@ export default function ContactForm({ annonce, onSent, onCancel }) {
   }
 
   if (envoye) {
-    return <p className="contact-sent" role="status">✓ Message envoyé à {annonce.vendeur.nom}, qui le retrouvera dans sa boîte de réception.</p>;
+    return (
+      <div className="contact-sent" role="status">
+        <span>✓ Message envoyé à {annonce.vendeur.nom}. Sa réponse arrivera dans tes messages.</span>
+        <button type="button" className="secondary-button" onClick={onOuvrirConversation}>Voir la conversation</button>
+      </div>
+    );
   }
 
   return (
