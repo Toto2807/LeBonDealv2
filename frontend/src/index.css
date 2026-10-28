@@ -57,3 +57,4 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .message-item p{margin:8px 0 0;font-size:13px;line-height:1.55;color:#45433d;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:700px){.market-nav{flex:1 1 auto;min-width:0;flex-wrap:wrap;justify-content:flex-end;row-gap:4px}
 }
+
