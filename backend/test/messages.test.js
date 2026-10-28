@@ -26,14 +26,15 @@ describe('messagerie (messages et conversations)', () => {
 
     const send = (auth, body, id = annonce.id) => request(app).post(`/api/annonces/${id}/messages`).set(auth).send(body);
     const thread = (auth, interlocuteurId, annonceId = annonce.id) => request(app).get(`/api/conversations/${annonceId}/${interlocuteurId}`).set(auth);
-    const reply = (auth, interlocuteurId, body, annonceId = annonce.id) => request(app).post(`/api/conversations/${annonceId}/${interlocuteurId}/messages`).set(auth).send(body);
+    const reply = (auth, interlocuteurId, body, annonceId = annonce.id) =>
+        request(app).post(`/api/conversations/${annonceId}/${interlocuteurId}/messages`).set(auth).send(body);
     const conversations = (auth) => request(app).get('/api/conversations').set(auth);
 
     test.each([
-        ['post', () => `/api/annonces/${ABSENT_ID}/message`],
+        ['post', () => `/api/annonces/${ABSENT_ID}/messages`],
         ['get', () => '/api/conversations'],
         ['get', () => `/api/conversations/${ABSENT_ID}/${ABSENT_ID}`],
-        ['post', () => `/api/conversations/${ABSENT_ID}/${ABSENT_ID}/message`],
+        ['post', () => `/api/conversations/${ABSENT_ID}/${ABSENT_ID}/messages`],
     ])('401 sans jeton : %s %s', async (method, url) => {
         const response = await request(app)[method](url());
 

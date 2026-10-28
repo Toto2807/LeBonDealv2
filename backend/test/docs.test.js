@@ -46,8 +46,8 @@ describe('documentation OpenAPI', () => {
         }
     });
 
-    test('toute route métier est protégée par bearerAuth, sauf health, register et login', () => {
-        const publicOperations = ['GET /api/health', 'POST /api/auth/register', 'POST /api/auth/login'];
+    test('toute route métier est protégée par bearerAuth, sauf health, register, login et l’affichage des photos', () => {
+        const publicOperations = ['GET /api/health', 'POST /api/auth/register', 'POST /api/auth/login', 'GET /api/images/{id}'];
         for (const operation of documentedOperations().filter((item) => !publicOperations.includes(item))) {
             const [method, path] = operation.split(' ');
             expect({ operation, security: openApiDocument.paths[path][method.toLowerCase()].security }).toEqual({ operation, security: [{ bearerAuth: [] }] });
@@ -59,7 +59,7 @@ describe('documentation OpenAPI', () => {
             const [method, path] = operation.split(' ');
             const codes = Object.keys(openApiDocument.paths[path][method.toLowerCase()].responses);
             expect({ operation, hasSuccess: codes.some((code) => code.startsWith('2')) }).toEqual({ operation, hasSuccess: true });
-            if (!['GET /api/health'].includes(operation) && !operation.includes('/auth/')) {
+            if (!['GET /api/health', 'GET /api/images/{id}'].includes(operation) && !operation.includes('/auth/')) {
                 expect({ operation, has401: codes.includes('401') }).toEqual({ operation, has401: true });
             }
         }

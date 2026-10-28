@@ -71,8 +71,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         await connectDb(config.mongoUri);
         // Garantit les index (unicité) avant d'insérer.
         await Promise.all([User, Annonce, Favori, Message, Image].map((model) => model.init()));
-        // const summary = await seedDatabase();
+        const summary = await seedDatabase();
+        console.log('Données de démonstration créées :', summary);
+        console.log(`Comptes : ${SEED_USERS.join(', ')}`);
+        console.log(`Mot de passe de tous les comptes : ${SEED_PASSWORD}`);
     } catch (error) {
+        console.error(`Seed impossible : ${error.message}`);
         process.exitCode = 1;
     } finally {
         await disconnectDb();

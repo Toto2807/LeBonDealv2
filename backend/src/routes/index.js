@@ -3,6 +3,7 @@ import { userRouter } from './userRoutes.js';
 import { annonceRouter } from './annonceRoutes.js';
 import { favoriRouter } from './favoriRoutes.js';
 import { conversationRouter } from './conversationRoutes.js';
+import { imageRouter } from './imageRoutes.js';
 
 // Source unique des routes métier : app.js les monte, les tests les comparent à la documentation OpenAPI.
 export const apiRouters = [
@@ -10,5 +11,6 @@ export const apiRouters = [
     ['/api/users', userRouter],
     ['/api/annonces', annonceRouter],
     ['/api/favoris', favoriRouter],
-    ['/api/conversation', conversationRouter],
+    ['/api/conversations', conversationRouter],
+    ['/api/images', imageRouter],
 ];

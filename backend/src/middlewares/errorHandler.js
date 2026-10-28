@@ -17,7 +17,10 @@ export function errorHandler(err, _req, res, next) {
     if (err instanceof AppError) {
         return res.status(err.status).json(toPayload(err.code, err.message));
     }
-    // Erreurs du parseur JSON : corps mal formé, trop gros, encodage inconnu.
+    if (err.type === 'entity.too.large') {
+        return res.status(400).json(toPayload('INVALID_INPUT', 'Corps de requête trop volumineux'));
+    }
+    // Erreurs du parseur JSON : corps mal formé, encodage inconnu.
     if (typeof err.type === 'string' && /^(entity|encoding|charset)\./.test(err.type)) {
         return res.status(400).json(toPayload('INVALID_INPUT', 'Corps de requête invalide'));
     }

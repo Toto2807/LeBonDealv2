@@ -4,7 +4,7 @@ import Footer from '../components/Footer.jsx';
 import AnnonceCard from '../components/AnnonceCard.jsx';
 import AnnonceDetail from '../components/AnnonceDetail.jsx';
 import AnnonceForm from '../components/AnnonceForm.jsx';
-import MessagesList from '../components/MessagesList.jsx';
+import Messagerie from '../components/Messagerie.jsx';
 import Notice from '../components/Notice.jsx';
 import { createAnnonce, deleteAnnonce, updateAnnonce } from '../api/annonces.js';
 import { addFavori, removeFavori } from '../api/favoris.js';
@@ -17,13 +17,15 @@ const TEXTES_VUE = {
   catalogue: ['Toutes les annonces en France', 'Découvrez des objets sélectionnés près de chez vous.'],
   'mes-annonces': ['Espace vendeur — vos articles', 'Suivez vos articles et gérez leur disponibilité.'],
   favoris: ['Vos articles sauvegardés', 'Retrouvez facilement les articles qui vous intéressent.'],
-  messages: ['Vos messages', 'Les acheteurs qui vous ont contacté à propos de vos annonces.'],
+  messages: ['Vos messages', 'Discutez avec les acheteurs et les vendeurs, sans quitter LeBonDeal.'],
 };
 
 export default function Home({ user, onLogout }) {
   const [vue, setVue] = useState('catalogue');
   const [recherche, setRecherche] = useState('');
   const [categorie, setCategorie] = useState('all');
+  const [etat, setEtat] = useState('');
+  const [ville, setVille] = useState('');
   const [prixMax, setPrixMax] = useState(PRIX_SLIDER.max);
   const [disponibles, setDisponibles] = useState(false);
   const [selection, setSelection] = useState(null);
@@ -31,6 +33,7 @@ export default function Home({ user, onLogout }) {
   const [actionEnCours, setActionEnCours] = useState(false);
   const [erreurAction, setErreurAction] = useState('');
   const [notice, setNotice] = useState(null);
+  const [conversation, setConversation] = useState(null);
 
   const rechercheDifferee = useDebouncedValue(recherche.trim(), 300);
   const filtres = useMemo(() => ({
@@ -39,10 +42,12 @@ export default function Home({ user, onLogout }) {
     favoris: vue === 'favoris' || undefined,
     // Les filtres de la barre ne s'appliquent qu'au catalogue, où ils sont visibles.
     categorie: vue === 'catalogue' && categorie !== 'all' ? categorie : undefined,
+    etat: vue === 'catalogue' && etat ? etat : undefined,
+    ville: vue === 'catalogue' && ville ? ville : undefined,
     prixMax: vue === 'catalogue' && prixMax < PRIX_SLIDER.max ? prixMax : undefined,
     disponibles: vue === 'catalogue' && disponibles ? true : undefined,
     limit: LISTE_LIMITE,
-  }), [rechercheDifferee, vue, categorie, prixMax, disponibles]);
+  }), [rechercheDifferee, vue, categorie, etat, ville, prixMax, disponibles]);
   const { annonces, setAnnonces, chargement, erreur, recharger } = useAnnonces(filtres, { groupe: vue, actif: vue !== 'messages' });
   const favoris = useFavoris();
 
@@ -120,15 +125,30 @@ export default function Home({ user, onLogout }) {
     setFormulaire(null);
   }
 
+  // Choix d'une proposition de la barre de recherche : applique le filtre correspondant dans le catalogue.
+  function choisirSuggestion(proposition) {
+    setVue('catalogue');
+    if (proposition.type === 'annonce') {
+      setRecherche(proposition.value);
+      return;
+    }
+    setRecherche('');
+    if (proposition.type === 'categorie') setCategorie(proposition.value);
+    else if (proposition.type === 'etat') setEtat(proposition.value);
+    else setVille(proposition.value);
+  }
+
   function reinitialiserFiltres() {
     setRecherche('');
     setCategorie('all');
+    setEtat('');
+    setVille('');
     setDisponibles(false);
     setPrixMax(PRIX_SLIDER.max);
   }
 
   const [titre, introduction] = TEXTES_VUE[vue];
-  const filtresActifs = Boolean(recherche) || categorie !== 'all' || disponibles || prixMax < PRIX_SLIDER.max;
+  const filtresActifs = Boolean(recherche) || categorie !== 'all' || Boolean(etat) || Boolean(ville) || disponibles || prixMax < PRIX_SLIDER.max;
   const compteur = annonces.length >= LISTE_LIMITE ? `${LISTE_LIMITE}+ articles` : `${annonces.length} article${annonces.length > 1 ? 's' : ''}`;
 
   return (
@@ -138,6 +158,7 @@ export default function Home({ user, onLogout }) {
         setVue={setVue}
         recherche={recherche}
         setRecherche={setRecherche}
+        onSuggestion={choisirSuggestion}
         favorisCount={favoris.count}
         onDeposer={() => setFormulaire({ annonce: null })}
         user={user}
@@ -153,12 +174,39 @@ export default function Home({ user, onLogout }) {
         {vue === 'catalogue' && <section className="filter-bar" aria-label="Filtres des annonces">
           <div className="category-filters">{CATEGORY_FILTERS.map(([id, label]) => <button key={id} onClick={() => setCategorie(id)} aria-pressed={categorie === id} className={categorie === id ? 'category-chip selected' : 'category-chip'}>{label}</button>)}</div>
           <div className="filter-options">
-            <label className="availability"><input type="checkbox" checked={disponibles} onChange={(event) => setDisponibles(event.target.checked)} /> Disponibles</label>
-            <label className="price-filter">{prixMax < PRIX_SLIDER.max ? <>Jusqu’à <strong>{prixMax.toLocaleString('fr-FR')} €</strong></> : <strong>Tous les prix</strong>}<input type="range" aria-label="Prix maximum" min={PRIX_SLIDER.min} max={PRIX_SLIDER.max} step={PRIX_SLIDER.step} value={prixMax} onChange={(event) => setPrixMax(Number(event.target.value))} /></label>
+            <label className="toggle">
+              <input type="checkbox" checked={disponibles} onChange={(event) => setDisponibles(event.target.checked)} />
+              <span className="toggle-track" aria-hidden="true" />
+              <span>Disponibles uniquement</span>
+            </label>
+            <div className="price-filter">
+              <div className="price-head">
+                <label htmlFor="prix-max">Prix maximum</label>
+                <output htmlFor="prix-max">{prixMax < PRIX_SLIDER.max ? `${prixMax.toLocaleString('fr-FR')} €` : 'Sans limite'}</output>
+              </div>
+              <input
+                id="prix-max"
+                type="range"
+                min={PRIX_SLIDER.min}
+                max={PRIX_SLIDER.max}
+                step={PRIX_SLIDER.step}
+                value={prixMax}
+                style={{ '--progress': `${((prixMax - PRIX_SLIDER.min) / (PRIX_SLIDER.max - PRIX_SLIDER.min)) * 100}%` }}
+                onChange={(event) => setPrixMax(Number(event.target.value))}
+              />
+              <div className="price-scale" aria-hidden="true"><span>{PRIX_SLIDER.min} €</span><span>{PRIX_SLIDER.max.toLocaleString('fr-FR')} € et +</span></div>
+            </div>
           </div>
         </section>}
 
-        {vue === 'messages' && <MessagesList />}
+        {vue === 'catalogue' && (etat || ville) && (
+          <div className="active-filters" aria-label="Filtres actifs">
+            {ville && <span className="filter-chip">Ville : {ville}<button type="button" aria-label={`Retirer le filtre ville ${ville}`} onClick={() => setVille('')}>×</button></span>}
+            {etat && <span className="filter-chip">État : {etat}<button type="button" aria-label={`Retirer le filtre état ${etat}`} onClick={() => setEtat('')}>×</button></span>}
+          </div>
+        )}
+
+        {vue === 'messages' && <Messagerie selection={conversation} onSelect={setConversation} />}
 
         {vue !== 'messages' && <div className="results-heading"><h2>{vue === 'catalogue' ? 'À découvrir' : 'Vos annonces'}</h2><span aria-live="polite">{chargement ? 'Chargement…' : compteur}</span></div>}
 
@@ -196,6 +244,7 @@ export default function Home({ user, onLogout }) {
           onModifier={(annonce) => { fermerDetail(); setFormulaire({ annonce }); }}
           onSupprimer={supprimer}
           onMessageEnvoye={(text) => setNotice({ type: 'success', text })}
+          onOuvrirConversation={(annonce) => { setConversation({ annonceId: annonce.id, interlocuteurId: annonce.ownerId }); fermerDetail(); setVue('messages'); }}
         />
       )}
 
