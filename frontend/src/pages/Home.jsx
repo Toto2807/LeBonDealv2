@@ -6,8 +6,10 @@ import AnnonceDetail from '../components/AnnonceDetail.jsx';
 import AnnonceForm from '../components/AnnonceForm.jsx';
 import Notice from '../components/Notice.jsx';
 import { createAnnonce, deleteAnnonce, updateAnnonce } from '../api/annonces.js';
+import { addFavori, removeFavori } from '../api/favoris.js';
 import { useAnnonces } from '../hooks/useAnnonces.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { useFavoris } from '../hooks/useFavoris.js';
 import { CATEGORY_FILTERS, LISTE_LIMITE, PRIX_SLIDER } from '../constants.js';
 
 const TEXTES_VUE = {
@@ -40,6 +42,7 @@ export default function Home({ user, onLogout }) {
     limit: LISTE_LIMITE,
   }), [rechercheDifferee, vue, categorie, prixMax, disponibles]);
   const { annonces, setAnnonces, chargement, erreur, recharger } = useAnnonces(filtres, { groupe: vue });
+  const favoris = useFavoris();
 
   const fermerNotice = useCallback(() => setNotice(null), []);
   const ouvrirDetail = (annonce) => {
@@ -68,6 +71,27 @@ export default function Home({ user, onLogout }) {
     setAnnonces((items) => items.map((item) => (item.id === annonceModifiee.id ? annonceModifiee : item)));
     setSelection((courante) => (courante?.id === annonceModifiee.id ? annonceModifiee : courante));
   };
+
+  // Mise à jour immédiate du cœur ; annulée avec un message si l'API refuse ou est injoignable.
+  function appliquerFavori(id, favori) {
+    favoris.marquer(id, favori);
+    setAnnonces((items) => (vue === 'favoris' && !favori
+      ? items.filter((item) => item.id !== id)
+      : items.map((item) => (item.id === id ? { ...item, favori } : item))));
+    setSelection((courante) => (courante?.id === id ? { ...courante, favori } : courante));
+  }
+
+  async function basculerFavori(annonce) {
+    const favori = !annonce.favori;
+    appliquerFavori(annonce.id, favori);
+    try {
+      await (favori ? addFavori(annonce.id) : removeFavori(annonce.id));
+    } catch (error) {
+      appliquerFavori(annonce.id, !favori);
+      if (vue === 'favoris') recharger();
+      setNotice({ type: 'error', text: `Favori non enregistré : ${error.message}` });
+    }
+  }
 
   const changerStatut = (annonce, statut) => executer(async () => {
     remplacerAnnonce(await updateAnnonce(annonce.id, { statut }));
@@ -112,7 +136,7 @@ export default function Home({ user, onLogout }) {
         setVue={setVue}
         recherche={recherche}
         setRecherche={setRecherche}
-        favorisCount={0}
+        favorisCount={favoris.count}
         onDeposer={() => setFormulaire({ annonce: null })}
         user={user}
         onLogout={onLogout}
@@ -150,7 +174,7 @@ export default function Home({ user, onLogout }) {
 
         {annonces.length > 0 && (
           <section className={chargement ? 'listing-grid is-loading' : 'listing-grid'} aria-label="Liste des annonces" aria-busy={chargement}>
-            {annonces.map((annonce) => <AnnonceCard key={annonce.id} annonce={annonce} onOpen={ouvrirDetail} />)}
+            {annonces.map((annonce) => <AnnonceCard key={annonce.id} annonce={annonce} onOpen={ouvrirDetail} onToggleFavori={basculerFavori} />)}
           </section>
         )}
       </main>

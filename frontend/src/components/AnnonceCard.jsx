@@ -2,7 +2,7 @@ import AnnoncePhoto from './AnnoncePhoto.jsx';
 import StatusBadge from './StatusBadge.jsx';
 import { formatDateRelative, formatPrix } from '../utils/format.js';
 
-export default function AnnonceCard({ annonce, onOpen }) {
+export default function AnnonceCard({ annonce, onOpen, onToggleFavori }) {
   function handleKeyDown(event) {
     if (event.target !== event.currentTarget) return;
     if (event.key === 'Enter' || event.key === ' ') {
@@ -22,6 +22,18 @@ export default function AnnonceCard({ annonce, onOpen }) {
       <div className="listing-photo">
         <AnnoncePhoto key={annonce.photo} src={annonce.photo} alt={annonce.titre} />
         <StatusBadge statut={annonce.statut} />
+        <button
+          type="button"
+          className={annonce.favori ? 'heart-button is-favorite' : 'heart-button'}
+          aria-pressed={annonce.favori}
+          aria-label={annonce.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleFavori(annonce);
+          }}
+        >
+          {annonce.favori ? '♥' : '♡'}
+        </button>
       </div>
       <div className="listing-info">
         <span className="listing-category">{annonce.categorie}</span>
