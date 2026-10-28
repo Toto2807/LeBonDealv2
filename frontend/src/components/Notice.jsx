@@ -15,3 +15,4 @@ export default function Notice({ notice, onDismiss }) {
     </div>
   );
 }
+

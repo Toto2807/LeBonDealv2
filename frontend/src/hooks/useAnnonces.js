@@ -35,3 +35,4 @@ export function useAnnonces(filtres, { groupe = '' } = {}) {
 
   return { annonces, setAnnonces, chargement, erreur, recharger };
 }
+

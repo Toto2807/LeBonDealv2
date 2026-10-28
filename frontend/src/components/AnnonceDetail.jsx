@@ -57,3 +57,4 @@ export default function AnnonceDetail({ annonce, estProprietaire, occupe, erreur
     </Modal>
   );
 }
+

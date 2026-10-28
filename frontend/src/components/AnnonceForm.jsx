@@ -80,3 +80,4 @@ export default function AnnonceForm({ annonce, onSubmit, onClose }) {
     </Modal>
   );
 }
+

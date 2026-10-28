@@ -17,3 +17,4 @@ export const CATEGORY_FILTERS = [
 // Au maximum du curseur, aucun plafond de prix n'est envoyé à l'API.
 export const PRIX_SLIDER = { min: 100, max: 2500, step: 50 };
 export const LISTE_LIMITE = 100;
+

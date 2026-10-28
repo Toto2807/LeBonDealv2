@@ -21,3 +21,4 @@ export function formatMembreDepuis(isoDate) {
 export function labelStatut(statut) {
   return { DISPONIBLE: 'Disponible', RESERVEE: 'Réservée', VENDUE: 'Vendue' }[statut] ?? statut;
 }
+

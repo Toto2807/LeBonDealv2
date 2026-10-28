@@ -32,3 +32,4 @@ export default function AnnonceCard({ annonce, onOpen }) {
     </article>
   );
 }
+
