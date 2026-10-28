@@ -28,3 +28,4 @@ export default function Header({ vue, setVue, recherche, setRecherche, favorisCo
     </header>
   );
 }
+
