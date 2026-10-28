@@ -7,6 +7,8 @@ export const annonceRouter = Router();
 annonceRouter.use(requireAuth);
 
 annonceRouter.get('/', annonceController.list);
+// Déclarée avant '/:id' pour ne pas être prise pour un identifiant.
+annonceRouter.get('/suggestions', annonceController.suggestions);
 annonceRouter.post('/', annonceController.create);
 annonceRouter.get('/:id', annonceController.getOne);
 annonceRouter.patch('/:id', annonceController.update);

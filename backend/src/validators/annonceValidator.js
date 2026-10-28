@@ -62,7 +62,7 @@ export function validatePatch(body) {
     return clean;
 }
 
-const QUERY_KEYS = ['q', 'categorie', 'prixMax', 'disponibles', 'mine', 'favoris', 'page', 'limit'];
+const QUERY_KEYS = ['q', 'categorie', 'etat', 'ville', 'prixMax', 'disponibles', 'mine', 'favoris', 'page', 'limit'];
 export const LIMIT_DEFAULT = 50;
 export const LIMIT_MAX = 100;
 
@@ -87,6 +87,8 @@ export function validateListQuery(query) {
     const clean = { page: 1, limit: LIMIT_DEFAULT };
     if ('q' in query) clean.q = cleanString(queryString(query.q, 'q'), 'q', { min: 1, max: 100 });
     if ('categorie' in query) clean.categorie = cleanEnum(query.categorie, 'categorie', CATEGORIES);
+    if ('etat' in query) clean.etat = cleanEnum(query.etat, 'etat', ETATS);
+    if ('ville' in query) clean.ville = cleanString(queryString(query.ville, 'ville'), 'ville', { min: 1, max: 80 });
     if ('prixMax' in query) clean.prixMax = queryInteger(query.prixMax, 'prixMax', { min: 0, max: PRIX_MAX });
     if ('disponibles' in query) clean.disponibles = queryBoolean(query.disponibles, 'disponibles');
     if ('mine' in query) clean.mine = queryBoolean(query.mine, 'mine');
@@ -94,4 +96,11 @@ export function validateListQuery(query) {
     if ('page' in query) clean.page = queryInteger(query.page, 'page', { min: 1, max: 100000 });
     if ('limit' in query) clean.limit = queryInteger(query.limit, 'limit', { min: 1, max: LIMIT_MAX });
     return clean;
+}
+
+// Paramètre de GET /api/annonces/suggestions : texte saisi (facultatif).
+export function validateSuggestionsQuery(query) {
+    assertAllowedKeys(query, ['q']);
+    if (query.q === undefined || query.q === '') return {};
+    return { q: cleanString(queryString(query.q, 'q'), 'q', { min: 1, max: 100 }) };
 }

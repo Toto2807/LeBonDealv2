@@ -1,9 +1,14 @@
 import * as annonceService from '../services/annonceService.js';
 import { assertObjectId } from '../validators/common.js';
-import { validateCreate, validatePatch, validateListQuery } from '../validators/annonceValidator.js';
+import { validateCreate, validatePatch, validateListQuery, validateSuggestionsQuery } from '../validators/annonceValidator.js';
 
 export async function list(req, res) {
     const items = await annonceService.listAnnonces(req.userId, validateListQuery(req.query));
+    res.status(200).json({ items });
+}
+
+export async function suggestions(req, res) {
+    const items = await annonceService.suggestAnnonces(validateSuggestionsQuery(req.query));
     res.status(200).json({ items });
 }
 

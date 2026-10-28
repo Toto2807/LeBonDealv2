@@ -12,8 +12,9 @@ const messageSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-// Boîte de réception d'un vendeur.
+// Messages reçus et messages envoyés d'un utilisateur : liste de ses conversations.
 messageSchema.index({ toId: 1, createdAt: -1 });
+messageSchema.index({ fromId: 1, createdAt: -1 });
 // Nettoyage des messages quand une annonce est supprimée.
 messageSchema.index({ annonceId: 1 });
 

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../src/app.js';
-import { User, Annonce, Favori, Message } from '../src/models/index.js';
+import { User, Annonce, Favori, Message, Image } from '../src/models/index.js';
 import { seedDatabase, SEED_PASSWORD } from '../src/seed/seed.js';
 import { connectTestDb, clearDb, closeTestDb } from './helpers/db.js';
 import { registerUser } from './helpers/auth.js';
@@ -13,11 +13,11 @@ describe('seed de démonstration', () => {
     test('crée comptes, annonces, favoris et message', async () => {
         const summary = await seedDatabase();
 
-        expect(summary).toEqual({ users: 5, annonces: 4, favoris: 2, messages: 1 });
+        expect(summary).toEqual({ users: 5, annonces: 4, favoris: 2, messages: 2 });
         expect(await User.countDocuments()).toBe(5);
         expect(await Annonce.countDocuments()).toBe(4);
         expect(await Favori.countDocuments()).toBe(2);
-        expect(await Message.countDocuments()).toBe(1);
+        expect(await Message.countDocuments()).toBe(2);
     });
 
     test('est idempotent : relancé deux fois, les compteurs restent identiques', async () => {
@@ -27,7 +27,21 @@ describe('seed de démonstration', () => {
         expect(await User.countDocuments()).toBe(5);
         expect(await Annonce.countDocuments()).toBe(4);
         expect(await Favori.countDocuments()).toBe(2);
-        expect(await Message.countDocuments()).toBe(1);
+        expect(await Message.countDocuments()).toBe(2);
+    });
+
+    test('supprime aussi les photos envoyées par les comptes de démonstration, mais pas celles des autres', async () => {
+        await seedDatabase();
+        const demo = await User.findOne({ email: 'demo@example.test' });
+        const autre = await registerUser('vrai.utilisateur@example.test');
+        const octets = Buffer.from([0xff, 0xd8, 0xff]);
+        await Image.create({ data: octets, contentType: 'image/jpeg', size: octets.length, ownerId: demo._id });
+        await Image.create({ data: octets, contentType: 'image/jpeg', size: octets.length, ownerId: autre.user.id });
+
+        await seedDatabase();
+
+        expect(await Image.countDocuments()).toBe(1);
+        expect(await Image.countDocuments({ ownerId: autre.user.id })).toBe(1);
     });
 
     test('ne touche pas aux autres comptes', async () => {

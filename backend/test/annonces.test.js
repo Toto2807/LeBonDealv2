@@ -163,6 +163,30 @@ describe('annonces', () => {
                 expect(await titres('?q=.*')).toEqual([]);
             });
 
+            test('q : insensible aux accents dans les deux sens', async () => {
+                expect(await titres('?q=velo')).toEqual(['Vélo (rénové) 1984']);
+                expect(await titres('?q=V%C3%89LO')).toEqual(['Vélo (rénové) 1984']);
+                expect(await titres('?q=renove')).toEqual(['Vélo (rénové) 1984']);
+                expect(await titres('?q=chene')).toEqual(['Fauteuil chêne']);
+                expect(await titres('?q=ch%C3%AAne')).toEqual(['Fauteuil chêne']);
+            });
+
+            test('ville : exacte, sans tenir compte de la casse ni des accents', async () => {
+                await createAnnonce(bob.auth, { titre: 'Lampe', ville: 'Saint-Étienne' });
+
+                expect(await titres('?ville=saint-etienne')).toEqual(['Lampe']);
+                expect(await titres('?ville=SAINT-%C3%89TIENNE')).toEqual(['Lampe']);
+                expect(await titres('?ville=saint')).toEqual([]);
+                expect(await titres('?ville=lyon')).toHaveLength(3);
+            });
+
+            test('etat', async () => {
+                await createAnnonce(alice.auth, { titre: 'Neuf sous blister', etat: 'Neuf' });
+
+                expect(await titres('?etat=Neuf')).toEqual(['Neuf sous blister']);
+                expect(await titres('?etat=Bon%20%C3%A9tat')).toEqual([]);
+            });
+
             test('categorie', async () => {
                 expect(await titres('?categorie=Maison%20%26%20Mobilier')).toEqual(['Fauteuil chêne']);
             });
@@ -199,6 +223,9 @@ describe('annonces', () => {
                 ['q répété', '?q=a&q=b'],
                 ['q trop long', `?q=${'a'.repeat(101)}`],
                 ['favoris invalide', '?favoris=1'],
+                ['état inconnu', '?etat=Cass%C3%A9'],
+                ['ville répétée', '?ville=a&ville=b'],
+                ['ville vide', '?ville='],
                 ['paramètre inconnu', '?tri=prix'],
                 ['opérateur injecté', '?q[$ne]=x'],
             ])('400 INVALID_INPUT : %s', async (_label, query) => {

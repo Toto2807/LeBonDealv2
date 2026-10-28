@@ -2,8 +2,8 @@ import { CATEGORIES, ETATS, STATUTS, PRIX_MAX } from '../models/Annonce.js';
 import { MESSAGE_MAX } from '../models/Message.js';
 import { LIMIT_DEFAULT, LIMIT_MAX } from '../validators/annonceValidator.js';
 
-const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
-const response = (name) => ({ $ref: `#/components/responses/${name}` });
+const ref = (name) => ({ $ref: `#/components/schemas/${name}`});
+const response = (name) => ({ $ref: `#/components/responses/${name}`});
 const json = (schema, example) => ({ content: { 'application/json': { schema, ...(example && { example }) } } });
 const body = (schema, example) => ({ required: true, ...json(schema, example) });
 const secured = [{ bearerAuth: [] }];
@@ -36,10 +36,10 @@ export const openApiDocument = {
         version: '1.0.0',
         description:
             'API REST de la marketplace LeBonDeal (Express + MongoDB).\n\n' +
-            'Toutes les routes métier exigent un JWT : obtenez-le avec `POST /api/auth/register` ou `POST /api/auth/login`, ' +
-            'puis cliquez sur **Authorize** et collez le jeton (sans le préfixe `Bearer`).\n\n' +
+            'Toutes les routes métier exigent un JWT : obtenez-le avec ⁠ POST /api/auth/register ⁠ ou ⁠ POST /api/auth/login ⁠, ' +
+            'puis cliquez sur *Authorize* et collez le jeton (sans le préfixe ⁠ Bearer ⁠).\n\n' +
             'Catalogue partagé : tout compte connecté peut lire les annonces, mais seul le propriétaire peut les modifier ou les supprimer ' +
-            '(un autre compte reçoit `404 NOT_FOUND`). Les exemples ne contiennent que des données fictives.',
+            '(un autre compte reçoit ⁠ 404 NOT_FOUND ⁠). Les exemples ne contiennent que des données fictives.',
     },
     servers: [{ url: '/', description: 'Serveur courant' }],
     tags: [
@@ -101,11 +101,13 @@ export const openApiDocument = {
             get: {
                 tags: ['Annonces'],
                 summary: 'Lister les annonces',
-                description: `Catalogue partagé, du plus récent au plus ancien. Retourne \`{"items": []}\` si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
+                description: `Catalogue partagé, du plus récent au plus ancien. Retourne \{"items": []}\` si aucune annonce ne correspond. Au plus ${LIMIT_MAX} annonces par page.`,
                 security: secured,
                 parameters: [
-                    queryParam('q', 'Recherche (insensible à la casse) dans le titre', { type: 'string', minLength: 1, maxLength: 100 }),
+                    queryParam('q', 'Recherche dans le titre (insensible à la casse et aux accents : « velo » trouve « Vélo »)', { type: 'string', minLength: 1, maxLength: 100 }),
                     queryParam('categorie', 'Filtrer par catégorie', { type: 'string', enum: CATEGORIES }),
+                    queryParam('etat', 'Filtrer par état de l’article', { type: 'string', enum: ETATS }),
+                    queryParam('ville', 'Filtrer par ville (sans tenir compte de la casse ni des accents)', { type: 'string', minLength: 1, maxLength: 80 }),
                     queryParam('prixMax', 'Prix maximum inclus, en euros', { type: 'integer', minimum: 0, maximum: PRIX_MAX }),
                     queryParam('disponibles', 'true : uniquement les annonces au statut DISPONIBLE', { type: 'boolean' }),
                     queryParam('mine', 'true : uniquement mes annonces', { type: 'boolean' }),
@@ -122,11 +124,25 @@ export const openApiDocument = {
             post: {
                 tags: ['Annonces'],
                 summary: 'Publier une annonce',
-                description: 'Le propriétaire est toujours le compte du JWT : `ownerId` et `id` fournis par le client sont refusés (400).',
+                description: 'Le propriétaire est toujours le compte du JWT : ⁠ ownerId ⁠ et ⁠ id ⁠ fournis par le client sont refusés (400).',
                 security: secured,
                 requestBody: body(ref('AnnonceCreate'), { titre: 'Vélo de ville vintage', prix: 260, categorie: 'Loisirs & Sport', ville: 'Lyon' }),
                 responses: {
                     201: { description: 'Annonce créée', ...json(ref('Annonce'), annonceExample) },
+                    400: response('InvalidInput'),
+                    401: response('Unauthorized'),
+                },
+            },
+        },
+        '/api/annonces/suggestions': {
+            get: {
+                tags: ['Annonces'],
+                summary: 'Suggestions de recherche',
+                description: 'Propose des catégories, états, villes et titres d’annonces correspondant au texte saisi (insensible à la casse et aux accents). Sans ⁠ q ⁠ : les catégories et les villes les plus présentes. Au plus 12 propositions.',
+                security: secured,
+                parameters: [queryParam('q', 'Texte saisi', { type: 'string', minLength: 1, maxLength: 100 })],
+                responses: {
+                    200: { description: 'Suggestions', ...json({ type: 'object', required: ['items'], properties: { items: { type: 'array', items: ref('Suggestion') } } }, { items: [{ type: 'categorie', value: 'Loisirs & Sport' }, { type: 'ville', value: 'Lyon' }, { type: 'annonce', value: 'Vélo de ville vintage', id: '507f1f77bcf86cd799439011' }] }) },
                     400: response('InvalidInput'),
                     401: response('Unauthorized'),
                 },
@@ -148,7 +164,7 @@ export const openApiDocument = {
             patch: {
                 tags: ['Annonces'],
                 summary: 'Modifier une annonce (propriétaire uniquement)',
-                description: 'Modification partielle : le corps doit contenir au moins un champ modifiable. `photo` et `codePostal` peuvent valoir `null`. Une annonce d’un autre compte répond 404.',
+                description: 'Modification partielle : le corps doit contenir au moins un champ modifiable. ⁠ photo ⁠ et ⁠ codePostal ⁠ peuvent valoir ⁠ null ⁠. Une annonce d’un autre compte répond 404.',
                 security: secured,
                 parameters: [idParam('id', 'Identifiant de l’annonce')],
                 requestBody: body(ref('AnnonceUpdate'), { statut: 'RESERVEE' }),
@@ -177,7 +193,7 @@ export const openApiDocument = {
             post: {
                 tags: ['Messages'],
                 summary: 'Contacter le vendeur',
-                description: 'L’expéditeur est le compte du JWT, le destinataire le propriétaire de l’annonce. Écrire à sa propre annonce est refusé (400).',
+                description: 'Premier message (ou message suivant) d’un acheteur. L’expéditeur est le compte du JWT, le destinataire le propriétaire de l’annonce. Écrire à sa propre annonce est refusé (400). Les réponses passent par /api/conversations.',
                 security: secured,
                 parameters: [idParam('id', 'Identifiant de l’annonce')],
                 requestBody: body(ref('MessageCreate'), { message: 'Bonjour, est-ce toujours disponible ?' }),
@@ -193,7 +209,7 @@ export const openApiDocument = {
             put: {
                 tags: ['Favoris'],
                 summary: 'Ajouter une annonce aux favoris',
-                description: 'Idempotent. La liste des favoris se lit avec `GET /api/annonces?favoris=true`.',
+                description: 'Idempotent. La liste des favoris se lit avec ⁠ GET /api/annonces?favoris=true ⁠.',
                 security: secured,
                 parameters: [idParam('annonceId', 'Identifiant de l’annonce')],
                 responses: {
@@ -216,15 +232,46 @@ export const openApiDocument = {
                 },
             },
         },
-        '/api/messages': {
+        '/api/conversations': {
             get: {
                 tags: ['Messages'],
-                summary: 'Messages reçus',
-                description: 'Boîte de réception du compte connecté, du plus récent au plus ancien (100 maximum).',
+                summary: 'Mes conversations',
+                description: 'Conversations du compte connecté (messages envoyés et reçus), la plus récente d’abord (100 maximum). Une conversation = une annonce + l’autre participant.',
                 security: secured,
                 responses: {
-                    200: { description: 'Messages reçus', ...json({ type: 'object', required: ['items'], properties: { items: { type: 'array', items: ref('Message') } } }) },
+                    200: { description: 'Conversations', ...json({ type: 'object', required: ['items'], properties: { items: { type: 'array', items: ref('Conversation') } } }) },
                     401: response('Unauthorized'),
+                },
+            },
+        },
+        '/api/conversations/{annonceId}/{interlocuteurId}': {
+            get: {
+                tags: ['Messages'],
+                summary: 'Lire une conversation',
+                description: 'Fil de discussion complet (200 derniers messages, du plus ancien au plus récent). Réservé aux deux participants : tout autre compte reçoit 404.',
+                security: secured,
+                parameters: [idParam('annonceId', 'Identifiant de l’annonce'), idParam('interlocuteurId', 'Identifiant de l’autre participant')],
+                responses: {
+                    200: { description: 'Conversation', ...json(ref('ConversationDetail')) },
+                    400: response('InvalidInput'),
+                    401: response('Unauthorized'),
+                    404: response('NotFound'),
+                },
+            },
+        },
+        '/api/conversations/{annonceId}/{interlocuteurId}/messages': {
+            post: {
+                tags: ['Messages'],
+                summary: 'Répondre dans une conversation',
+                description: 'Utilisable par l’acheteur comme par le vendeur, uniquement si la conversation existe déjà (le vendeur ne peut que répondre). Aucune conversation commune : 404.',
+                security: secured,
+                parameters: [idParam('annonceId', 'Identifiant de l’annonce'), idParam('interlocuteurId', 'Identifiant de l’autre participant')],
+                requestBody: body(ref('MessageCreate'), { message: 'Oui, toujours disponible, vous pouvez passer demain.' }),
+                responses: {
+                    201: { description: 'Message envoyé', ...json(ref('Message')) },
+                    400: response('InvalidInput'),
+                    401: response('Unauthorized'),
+                    404: response('NotFound'),
                 },
             },
         },
@@ -337,15 +384,55 @@ export const openApiDocument = {
                 additionalProperties: false,
                 properties: { message: { type: 'string', minLength: 1, maxLength: MESSAGE_MAX } },
             },
+            Suggestion: {
+                type: 'object',
+                required: ['type', 'value'],
+                properties: {
+                    type: { type: 'string', enum: ['categorie', 'etat', 'ville', 'annonce'] },
+                    value: { type: 'string' },
+                    id: { type: 'string', description: 'Identifiant de l’annonce (type annonce uniquement)' },
+                },
+            },
+            Participant: {
+                type: 'object',
+                properties: { id: { type: 'string' }, nom: { type: 'string', description: 'Prénom et initiale déduits de l’email' } },
+            },
             Message: {
                 type: 'object',
                 properties: {
                     id: { type: 'string' },
                     annonceId: { type: 'string' },
                     annonceTitre: { type: 'string', nullable: true },
-                    from: { type: 'object', properties: { id: { type: 'string' }, nom: { type: 'string' } } },
+                    from: ref('Participant'),
+                    to: ref('Participant'),
                     message: { type: 'string' },
+                    fromMe: { type: 'boolean', description: 'Message écrit par le compte connecté' },
                     createdAt: { type: 'string', format: 'date-time' },
+                },
+            },
+            Conversation: {
+                type: 'object',
+                properties: {
+                    annonceId: { type: 'string' },
+                    annonceTitre: { type: 'string', nullable: true },
+                    annoncePhoto: { type: 'string', nullable: true },
+                    interlocuteur: ref('Participant'),
+                    dernierMessage: {
+                        type: 'object',
+                        properties: { message: { type: 'string' }, fromMe: { type: 'boolean' }, createdAt: { type: 'string', format: 'date-time' } },
+                    },
+                    total: { type: 'integer', description: 'Nombre de messages échangés' },
+                },
+            },
+            ConversationDetail: {
+                type: 'object',
+                properties: {
+                    annonce: {
+                        type: 'object',
+                        properties: { id: { type: 'string' }, titre: { type: 'string' }, prix: { type: 'integer' }, photo: { type: 'string', nullable: true }, statut: { type: 'string', enum: STATUTS } },
+                    },
+                    interlocuteur: ref('Participant'),
+                    items: { type: 'array', items: ref('Message') },
                 },
             },
         },

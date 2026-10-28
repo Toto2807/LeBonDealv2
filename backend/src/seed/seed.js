@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { pathToFileURL } from 'node:url';
 import { config, assertConfig } from '../config/env.js';
 import { connectDb, disconnectDb } from '../config/db.js';
-import { User, Annonce, Favori, Message } from '../models/index.js';
+import { User, Annonce, Favori, Message, Image } from '../models/index.js';
 
 // Données de démonstration 100 % fictives. Tous les comptes partagent ce mot de passe de développement.
 export const SEED_PASSWORD = 'MotDePasse123!';
@@ -27,6 +27,7 @@ export async function seedDatabase() {
         Message.deleteMany({ $or: [{ fromId: { $in: existingIds } }, { toId: { $in: existingIds } }] }),
         Favori.deleteMany({ $or: [{ userId: { $in: existingIds } }, { annonceId: { $in: annonceIds } }] }),
         Annonce.deleteMany({ ownerId: { $in: existingIds } }),
+        Image.deleteMany({ ownerId: { $in: existingIds } }),
     ]);
     await User.deleteMany({ _id: { $in: existingIds } });
 
@@ -51,8 +52,15 @@ export async function seedDatabase() {
         toId: annonces[0].ownerId,
         body: 'Bonjour, le MacBook est-il toujours disponible ?',
     });
+    // Réponse du vendeur : la conversation de démonstration contient un aller-retour.
+    await Message.create({
+        annonceId: annonces[0]._id,
+        fromId: annonces[0].ownerId,
+        toId: demo._id,
+        body: 'Oui, il est toujours disponible ! Vous pouvez passer le voir à Bordeaux cette semaine.',
+    });
 
-    return { users: users.length, annonces: annonces.length, favoris: 2, messages: 1 };
+    return { users: users.length, annonces: annonces.length, favoris: 2, messages: 2 };
 }
 
 // Exécution en ligne de commande : npm run db:seed
@@ -62,13 +70,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         assertConfig();
         await connectDb(config.mongoUri);
         // Garantit les index (unicité) avant d'insérer.
-        await Promise.all([User, Annonce, Favori, Message].map((model) => model.init()));
+        await Promise.all([User, Annonce, Favori, Message, Image].map((model) => model.init()));
         const summary = await seedDatabase();
-        console.log('Données de démonstration créées :', summary);
-        console.log(`Comptes : ${SEED_USERS.join(', ')}`);
-        console.log(`Mot de passe de tous les comptes : ${SEED_PASSWORD}`);
     } catch (error) {
-        console.error(`Seed impossible : ${error.message}`);
         process.exitCode = 1;
     } finally {
         await disconnectDb();

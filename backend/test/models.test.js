@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { connectTestDb, clearDb, closeTestDb } from './helpers/db.js';
-import { User, Annonce, Favori, Message } from '../src/models/index.js';
+import { User, Annonce, Favori, Message, Image, IMAGE_MAX_BYTES } from '../src/models/index.js';
 
 const validAnnonce = (ownerId) => ({
     titre: 'Vélo de ville',
@@ -96,6 +96,29 @@ describe('modèles Mongoose', () => {
 
         test.each([[''], ['   '], ['x'.repeat(1001)]])('refuse un corps invalide (%#)', async (body) => {
             await expect(Message.create({ ...ids(), body })).rejects.toThrow(mongoose.Error.ValidationError);
+        });
+    });
+
+    describe('Image', () => {
+        const valid = () => ({ data: Buffer.from([1, 2, 3]), contentType: 'image/png', size: 3, ownerId: new mongoose.Types.ObjectId() });
+
+        test('enregistre et relit des octets', async () => {
+            const created = await Image.create(valid());
+
+            const stored = await Image.findById(created._id);
+            expect([...stored.data]).toEqual([1, 2, 3]);
+            expect(stored.contentType).toBe('image/png');
+        });
+
+        test.each([
+            ['type non autorisé (SVG)', { contentType: 'image/svg+xml' }],
+            ['type absent', { contentType: undefined }],
+            ['données absentes', { data: undefined }],
+            ['taille nulle', { size: 0 }],
+            ['taille au-delà de la limite', { size: IMAGE_MAX_BYTES + 1 }],
+            ['propriétaire absent', { ownerId: undefined }],
+        ])('refuse : %s', async (_label, override) => {
+            await expect(Image.create({ ...valid(), ...override })).rejects.toThrow(mongoose.Error.ValidationError);
         });
     });
 });
