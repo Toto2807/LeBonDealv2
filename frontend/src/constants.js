@@ -10,7 +10,7 @@ export const STATUTS = [
 export const CATEGORY_FILTERS = [
   ['all', '✨ Tout'],
   ['Multimédia', '💻 Multimédia'],
-  ['Loisirs & Sport', '🚲 Vélo & Sport'],
+  ['Loisirs & Sport', '💪 Loisirs & Sport'],
   ['Maison & Mobilier', '🛋️ Mobilier'],
 ];
 
